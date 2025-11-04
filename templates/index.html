@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Sentiment Analyzer</title>
+    <link rel="icon" type="image/webp" href="/static/clapbox.webp">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: url("/static/nlp.png") no-repeat center center/cover;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.85);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        @keyframes fadeBounce {
+            0% { opacity: 0; transform: translateY(-30px); }
+            50% { opacity: 0.5; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes gradientAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(45deg, #ff6600, #161615, #ffcc00);
+            background-size: 300% 300%;
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientAnimation 3s ease infinite, fadeBounce 1s ease-out;
+            text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .image-container {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .image-container img {
+            max-width: 100px;
+            height: auto;
+            border-radius: 50%;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .input-container {
+            position: relative;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .input-container input,
+        .input-container textarea {
+            width: 90%;
+            padding: 12px;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+            transition: all 0.3s ease-in-out;
+            background: #fff;
+            outline: none;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .input-container input:focus,
+        .input-container textarea:focus {
+            border-image: linear-gradient(45deg, #ff6600, #ff9900, #ffcc00, #6c5ce7, #74ebd5) 1;
+            border-width: 3px;
+            box-shadow: 0 0 12px rgba(255, 102, 0, 0.7);
+            animation: glowing-border 1.5s infinite alternate;
+        }
+
+        @keyframes glowing-border {
+            0% {
+                border-color: #ff6600;
+                box-shadow: 0 0 5px rgba(255, 102, 0, 0.7);
+            }
+            50% {
+                border-color: #6c5ce7;
+                box-shadow: 0 0 10px rgba(108, 92, 231, 0.7);
+            }
+            100% {
+                border-color: #74ebd5;
+                box-shadow: 0 0 15px rgba(116, 235, 213, 0.7);
+            }
+        }
+
+        .input-container span {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            transition: all 0.3s ease;
+            color: #999;
+            font-size: 1em;
+        }
+
+        .input-container input:focus + span,
+        .input-container input:not(:placeholder-shown) + span,
+        .input-container textarea:focus + span,
+        .input-container textarea:not(:placeholder-shown) + span {
+            top: 0;
+            left: 5%;
+            transform: translateY(-50%);
+            font-size: 0.8em;
+            color: #ff6600;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 0 5px;
+        }
+
+        button {
+            background: linear-gradient(45deg, #74ebd5, #acb6e5);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.2s ease;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: linear-gradient(45deg, #acb6e5, #74ebd5);
+            transform: translateY(-3px);
+        }
+
+        .result {
+            margin-top: 20px;
+            font-size: 18px;
+            padding: 10px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .stars {
+            color: gold;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="image-container">
+            <img src="/static/nlp.png" alt="Sentiment Analysis">
+        </div>
+        <h1>Movie Sentiment Analyzer</h1>
+        <div class="input-container">
+            <input type="text" id="movie-name" placeholder=" " oninput="handleInput(this)">
+            <span>Enter Movie Name...</span>
+        </div>
+        <div class="input-container">
+            <textarea id="description" placeholder=" " oninput="handleInput(this)"></textarea>
+            <span>Describe your experience...</span>
+        </div>
+        <button onclick="analyzeMovieSentiment()">Analyze</button>
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+    function handleInput(input) {
+        const span = input.nextElementSibling;
+        span.classList.toggle("active", input.value.trim() !== "");
+    }
+
+    async function analyzeMovieSentiment() {
+        const movieName = document.getElementById('movie-name').value.trim();
+        const description = document.getElementById('description').value.trim();
+        const resultDiv = document.getElementById('result');
+
+        if (!movieName || !description) {
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = "<p style='color:red;'>Please enter both movie name and description.</p>";
+            return;
+        }
+
+        try {
+            const response = await fetch('http://127.0.0.1:5000/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ movie_name: movieName, description: description })
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `<p style='color:red;'>${data.error}</p>`;
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <strong>Sentiment:</strong> ${data.sentiment.toUpperCase()}<br>
+                <strong>Movie:</strong> ${data.movie}<br>
+                <strong>Predicted Rating:</strong> <span class='stars'>${data.stars}</span> (${data.predicted_rating}/5)<br>
+                <strong>IMDb Rating:</strong> ${data.imdb_rating || 'N/A'}
+            `;
+        } catch (error) {
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = "<p style='color:red;'>Error analyzing sentiment.</p>";
+        }
+    }
+    </script>
+</body>
+</html>
