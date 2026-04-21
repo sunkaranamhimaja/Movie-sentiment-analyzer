@@ -6,7 +6,11 @@ from colorama import Fore, Style
 app = Flask(__name__)
 
 # Load IMDb dataset
+
 df = pd.read_csv('IMDB Dataset.csv') 
+
+df = pd.read_csv('C:/Users/saihi/OneDrive/Desktop/movie/IMDB Dataset.csv')
+  
 
 # Normalize column names (safe fix)
 df.columns = df.columns.str.lower().str.strip()
@@ -78,5 +82,9 @@ def analyze():
 
 if __name__ == '__main__':
     print(Fore.YELLOW + "[INFO] Starting Flask server..." + Style.RESET_ALL)
+<<<<<<< HEAD
     app.run(debug=False, port=5001)
 
+=======
+    app.run(debug=True)
+>>>>>>> 54e7c7434576777d5944403d39bc3fe113044c4f
