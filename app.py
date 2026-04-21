@@ -2,16 +2,33 @@ from flask import Flask, render_template, request, jsonify
 import pandas as pd
 from transformers import pipeline
 from colorama import Fore, Style
+import os
 
 app = Flask(__name__)
 
 # Load IMDb dataset
-df = pd.read_csv('IMDB Dataset.csv')
-# Normalize column names (safe fix)
-df.columns = df.columns.str.lower().str.strip()
+print(Fore.CYAN + "[INFO] Loading dataset..." + Style.RESET_ALL)
+try:
+    df = pd.read_csv('IMDB Dataset.csv')
+    df.columns = df.columns.str.lower().str.strip()
+    print(Fore.GREEN + f"[SUCCESS] Dataset loaded: {len(df)} rows" + Style.RESET_ALL)
+except Exception as e:
+    print(Fore.RED + f"[ERROR] Failed to load dataset: {e}" + Style.RESET_ALL)
+    df = pd.DataFrame()
 
 # Load sentiment analysis model
-sentiment_pipeline = pipeline("sentiment-analysis")
+print(Fore.CYAN + "[INFO] Loading sentiment model (this may take 1-2 minutes)..." + Style.RESET_ALL)
+try:
+    # Use a lightweight model that's faster to load
+    sentiment_pipeline = pipeline(
+        "sentiment-analysis",
+        model="distilbert-base-uncased-finetuned-sst-2-english",
+        device=-1  # Force CPU
+    )
+    print(Fore.GREEN + "[SUCCESS] Model loaded successfully" + Style.RESET_ALL)
+except Exception as e:
+    print(Fore.RED + f"[ERROR] Failed to load model: {e}" + Style.RESET_ALL)
+    sentiment_pipeline = None
 
 
 @app.route('/')
@@ -23,6 +40,9 @@ def home():
 @app.route('/analyze', methods=['POST'])
 def analyze():
     try:
+        if sentiment_pipeline is None:
+            return jsonify({'error': 'Model not loaded. Please check server logs.'}), 500
+        
         # ✅ Read JSON from frontend (not form data)
         data = request.get_json()
         movie_name = data.get('movie_name') or data.get('movie') or ''
@@ -77,4 +97,5 @@ def analyze():
 
 if __name__ == '__main__':
     print(Fore.YELLOW + "[INFO] Starting Flask server..." + Style.RESET_ALL)
-    app.run(debug=False, host='0.0.0.0', port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=False, host='0.0.0.0', port=port)
