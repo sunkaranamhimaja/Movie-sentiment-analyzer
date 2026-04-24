@@ -1,18 +1,31 @@
 from flask import Flask, render_template, request, jsonify
 import pandas as pd
-from transformers import pipeline
 from colorama import Fore, Style
+import os
 
 app = Flask(__name__)
 
 # Load IMDb dataset
-df = pd.read_csv('C:/Users/saihi/OneDrive/Desktop/movie/IMDB Dataset.csv')
+try:
+    df = pd.read_csv('IMDB_Dataset.csv')
+    df.columns = df.columns.str.lower().str.strip()
+except Exception as e:
+    print(Fore.RED + f"[ERROR] Failed to load dataset: {e}" + Style.RESET_ALL)
+    df = pd.DataFrame()
 
-# Normalize column names (safe fix)
-df.columns = df.columns.str.lower().str.strip()
+# ✅ CHANGE 1: Lazy load — model loads only on first request, not at startup
+sentiment_pipeline = None
 
-# Load sentiment analysis model
-sentiment_pipeline = pipeline("sentiment-analysis")
+def get_model():
+    global sentiment_pipeline
+    if sentiment_pipeline is None:
+        from transformers import pipeline
+        sentiment_pipeline = pipeline(
+            "sentiment-analysis",
+            model="distilbert-base-uncased-finetuned-sst-2-english",
+            device=-1
+        )
+    return sentiment_pipeline
 
 
 @app.route('/')
@@ -33,8 +46,8 @@ def analyze():
             print(Fore.RED + "[ERROR] Description missing!" + Style.RESET_ALL)
             return jsonify({'error': 'Please enter your review!'}), 400
 
-        # Run sentiment analysis
-        sentiment = sentiment_pipeline(description)[0]
+        # ✅ CHANGE 2: Use get_model() instead of sentiment_pipeline directly
+        sentiment = get_model()(description)[0]
         sentiment_label = sentiment.get('label', 'NEUTRAL')
         score = sentiment.get('score', 0)
 
@@ -78,4 +91,6 @@ def analyze():
 
 if __name__ == '__main__':
     print(Fore.YELLOW + "[INFO] Starting Flask server..." + Style.RESET_ALL)
-    app.run(debug=True)
+    # ✅ CHANGE 3: Use PORT env variable for Render/Railway
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=False, host='0.0.0.0', port=port)
